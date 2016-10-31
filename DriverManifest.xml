@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<driverManifest>
+	<driver
+		id="{48E88492-A0B3-4BA8-8BAC-7CBEF50A863C}"
+		name="Rachio Public API"
+		author="Carson Eisenach"
+		copyright="Carson Eisenach 2016"
+		deviceManufacturer="rachio"
+		deviceModel="rachio"
+		driverVersion="1.2"
+		minimumRuntimeVersion="1"		
+		minimumSoftwareVersion="9.7"
+		processorType="XP-8"
+		configSettingsStream="ConfigSettings.xml"
+	    systemFunctionsStream="SystemFunctions.xml"
+		helpTextStream="instructions.rtf">
+		<processorScript stream="rachio_commands.js" />
+		<package>
+			<output filename="rachio" public="false"/>
+			<description>
+				Rachio RTI Driver
+			</description>
+		</package>
+	</driver>
+</driverManifest>

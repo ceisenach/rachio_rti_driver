@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+  <category name="Rachio Authorization" description="Connection Details">
+    <setting type="string" name="Rachio OOAuth Token" variable="RachioToken" description="Find online on the Rachio Web App" />
+  </category>
+</configuration>
