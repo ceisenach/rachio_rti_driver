@@ -7,13 +7,15 @@
 		copyright="Carson Eisenach 2016"
 		deviceManufacturer="rachio"
 		deviceModel="rachio"
-		driverVersion="1.2"
+		driverVersion="1.32"
 		minimumRuntimeVersion="1"		
 		minimumSoftwareVersion="9.7"
 		processorType="XP-8"
 		configSettingsStream="ConfigSettings.xml"
+		systemVariablesStream="SystemVariables.xml"
 	    systemFunctionsStream="SystemFunctions.xml"
 		helpTextStream="instructions.rtf">
+		<processorScript stream="util.js" />
 		<processorScript stream="rachio_commands.js" />
 		<package>
 			<output filename="rachio" public="false"/>

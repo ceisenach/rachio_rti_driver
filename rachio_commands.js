@@ -5,82 +5,106 @@
 System.Print("Rachio Driver: Initializing...\r\n");
 
 //
-// Globals
+// Globals - HTTP Buffer Object
 //
 var RACHIO_API = "api.rach.io";
 
-var g_comm = new HTTP('OnCommRX'); //doesn't need to receive data
-g_comm.OnConnectFunc = OnTCPConnect;
-g_comm.OnDisconnectFunc = OnTCPDisconnect;
-g_comm.OnConnectFailedFunc = OnConnectFailed;
-g_comm.OnSSLHandshakeOKFunc = OnSSLHandshakeOK;
-g_comm.OnSSLHandshakeFailedFunc = OnSSLHandshakeFailed;
+var net_comm = new HTTP('OnCommRX');
+net_comm.OnConnectFunc = OnTCPConnect;
+net_comm.OnDisconnectFunc = OnTCPDisconnect;
+net_comm.OnConnectFailedFunc = OnConnectFailed;
+net_comm.OnSSLHandshakeOKFunc = update_status_and_queue;
+net_comm.OnSSLHandshakeFailedFunc = OnSSLHandshakeFailed;
 
-var API_CALL = null;
-var API_CALL_DATA = null;
-var API_CALL_DATA_LENGTH = 0;
+// Globals - STATIC VARS FOR QUEUED COMMANDS
+var REQUEST_QUEUE = UTIL_QUEUE_new(100);
+
+// Timers
+var refresh_timer = new Timer();
+var refresh_interval = 5000; // every second request status from API, flush command queue
+refresh_timer.Start(On_refresh_timer,refresh_interval);
+
 
 //
 //  Internal Functions
 //
+// send queue and update status
+function update_status_and_queue() {
+	System.Print('RACHIo DEBUG -- Updating status and sendning\r\n');
+    // if(net_comm.ConnectState == 0){
+    	// net_comm.Close();
+     //    var openState = net_comm.Open(RACHIO_API, 443);
+    // }
 
-function OnCommRX(data){
-	//System.Print('RACHIO DATA - '+data+'\r\n');
-	g_comm.Disconnect();
+    // Update Watering Status
+    var st_rq = UTIL_RACHIO_GET_REQUEST_new('/1/public/device/'+Config.Get("RachioDeviceID")+'/current_schedule');
+    st_rq.write(net_comm);
+    System.Print('RACHIO DEBUG -- '+String(REQUEST_QUEUE));
+    // Send any messages in queue
+    var next_request = REQUEST_QUEUE.remove();
+    while(next_request != null){
+        System.LogInfo(1,'PENTAIR DRIVER - Sending Message\r\n');
+        next_request.write(net_comm,RACHIO_API);
+        next_request = REQUEST_QUEUE.remove();
+    }
+
+    // Restart Refresh Timer
+    refresh_timer.Start(On_refresh_timer,refresh_interval);
 }
 
-function water_zone() {
-	//System.Print('RACHIO DRIVER - Sending Command to API')
+function On_refresh_timer() {
+	System.Print('RACHIo DEBUG -- refresh timer\r\n');
+	net_comm.Close();
+    var openState = net_comm.Open(RACHIO_API, 443);
+}
 
-	g_comm.Write("PUT /1/public/zone/start HTTP/1.1\r\n");
-	g_comm.Write("Host: "+RACHIO_API+":443\r\n");
-	g_comm.Write("Connection: keep-alive\r\n");
-	g_comm.Write("Content-Length: "+API_CALL_DATA_LENGTH+"\r\n");
-	g_comm.Write("Cache-Control: max-age=0\r\n");
-	g_comm.Write("Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8\r\n");
-	g_comm.Write("User-Agent: Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36\r\n");
-	g_comm.Write("Accept-Encoding: gzip, deflate\r\n");
-    g_comm.Write("Accept-Language: nl-NL,nl;q=0.8,en-US;q=0.6,en;q=0.4\r\n");
-    g_comm.Write('Authorization: Bearer '+Config.Get("RachioToken")+'\r\n');
-	g_comm.Write("Content-Type: application/json\r\n\r\n");
-	g_comm.Write(API_CALL_DATA);
+function OnCommRX(data){
+	System.Print('RACHIO DATA - '+data.length+'\r\n');
+	System.Print('RACHIO DATA - '+data+'\r\n');
+	System.Print('RACHIO DATA - '+data.length+'\r\n');
 }
 
 function OnTCPConnect() {
+	System.Print('RACHIO DEBUG -- TCP CONNECT');
 	System.LogInfo(1,"RACHIO DRIVER - Connected to Rachio API\r\n");
-	var sslState = g_comm.StartSSLHandshake();
+	var sslState = net_comm.StartSSLHandshake();
+	System.Print('RACHIo DEBUG -- ssl state:'+String(sslState)+'\r\n');
 	if(!sslState){
-		System.LogInfo(3,"RACHIO DRIVER -- SSL Failed");
+		System.LogInfo(1,"RACHIO DRIVER -- SSL Failed");
 	}
 }
 
 function OnTCPDisconnect() {
+	System.Print('RACHIO DEBUG -- TCP DISCONNECT');
 	System.LogInfo(1,"RACHIO DRIVER - Disconnected From Rachio API\r\n");
-	g_comm.Close();
+	net_comm.Close();
 }
 
 function OnConnectFailed() {
-	System.LogInfo(3,"RACHIO DRIVER - Did Not Connect to Rachio API\r\n");
-	g_comm.Close();
+	System.Print('RACHIO DEBUG -- CONNECT FAILED');
+	System.LogInfo(1,"RACHIO DRIVER - Did Not Connect to Rachio API\r\n");
+	net_comm.Close();
 }
 
 function OnSSLHandshakeOK() {
+	System.Print('RACHIO DEBUG -- SSL HANDSHAKE OK');
 	System.LogInfo(1,"RACHIO DRIVER - SSL Handshake with Rachio API SUCCESS\r\n");
-	eval(API_CALL+'()');
 }
 
 function OnSSLHandshakeFailed() {
-	System.LogInfo(3,"RACHIO DRIVER - SSL Handshake with Rachio API FAILURE\r\n");
-	g_comm.Close();
+	System.Print('RACHIO DEBUG -- SSL HANDSHAKE FAILED');
+	System.LogInfo(1,"RACHIO DRIVER - SSL Handshake with Rachio API FAILURE\r\n");
+	net_comm.Close();
 }
 
 //
 //  External Functions
 //
 function TimedWatering(time,ZoneID) {
+	System.Print('Timed Watering:'+String(time)+' '+ZoneID);
 	time = String(time);
-	API_CALL_DATA = '{id:'+ZoneID+', duration:' +time+ '}\n\n';
-	API_CALL_DATA_LENGTH = 4+ZoneID.length +11+time.length +3;
-	API_CALL = 'water_zone';
-	var openState = g_comm.Open(RACHIO_API, 443);
+	var tw_payload = '{id:'+ZoneID+', duration:' +time+ '}\n\n';
+	var tw_endpoint = '/1/public/zone/start';
+	var tw_request = UTIL_RACHIO_PUT_REQUEST_new(tw_endpoint,tw_payload);
+	REQUEST_QUEUE.add(tw_request);
 }

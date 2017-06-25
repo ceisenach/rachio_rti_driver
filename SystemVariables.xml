@@ -1,0 +1,5 @@
+<variables>
+	<category name="Rachio Iro Status">
+		<variable name="Rachio Watering On" sysvar="RACHIO_watering_on" type="boolean" />
+	</category>
+</variables>
