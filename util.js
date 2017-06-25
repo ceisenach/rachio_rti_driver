@@ -28,9 +28,9 @@ function UTIL_QUEUE_new(length) {
 		if(nq.length == 0){
 			return null;
 		}
-		var first_entry = nq[0];
+		var first_entry = nq.array[0];
         for(i=1;i < nq.length; i++){
-            nq[i-1] = nq[i];
+            nq.array[i-1] = nq.array[i];
         }
         nq.length = nq.length - 1;
 		return first_entry;
@@ -45,9 +45,7 @@ function UTIL_RACHIO_PUT_REQUEST_new(endpoint,payload) {
 	nc.endpoint = endpoint;
 	nc.payload = payload;
 	nc.request_type = "PUT";
-	System.Print('RACHIo DEBUG -- new put\r\n');
 	nc.write = function(net_comm,api_address) {
-		System.Print('RACHIo DEBUG -- writing put\r\n');
 		net_comm.Write("PUT "+nc.endpoint+" HTTP/1.1\r\n");
 		net_comm.Write("Host: "+api_address+":443\r\n");
 		net_comm.Write("Connection: keep-alive\r\n");
@@ -61,20 +59,15 @@ function UTIL_RACHIO_PUT_REQUEST_new(endpoint,payload) {
 		net_comm.Write("Content-Type: application/json\r\n\r\n");
 		net_comm.Write(nc.payload);
 	};
-
 	return nc;
 }
 
 function UTIL_RACHIO_GET_REQUEST_new(endpoint) {
-	System.Print('RACHIo DEBUG -- new get\r\n');
 	var nc = new Object();
 	nc.endpoint = endpoint;
 	nc.request_type = "GET";
 	nc.write = function(net_comm,api_address) {
-		System.Print('RACHIo DEBUG -- writing get\r\n');
 		var rs = net_comm.Write("GET "+nc.endpoint+" HTTP/1.1\r\n");
-		System.Print('RACHIo DEBUG -- status: '+String(rs)+'\r\n');
-		System.Print('RACHIo DEBUG -- status: '+nc.endpoint+'\r\n');
 		net_comm.Write("Host: "+api_address+":443\r\n");
 		net_comm.Write("Connection: keep-alive\r\n");
 		net_comm.Write("Cache-Control: max-age=0\r\n");
