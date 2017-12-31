@@ -21,6 +21,9 @@ function UTIL_QUEUE_new(length) {
 		return false;
 	};
 	nq.add = function(a) {
+		if(nq.length == nq.max_length) {
+			var old_entry = nq.remove();
+		}
 		nq.array[nq.length] = a;
 		nq.length = nq.length + 1;
 	};
