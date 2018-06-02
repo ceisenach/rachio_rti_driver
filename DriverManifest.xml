@@ -7,7 +7,7 @@
 		copyright="Carson Eisenach 2016"
 		deviceManufacturer="rachio"
 		deviceModel="rachio"
-		driverVersion="1.5"
+		driverVersion="1.71"
 		minimumRuntimeVersion="1"		
 		minimumSoftwareVersion="9.7"
 		processorType="XP-8"

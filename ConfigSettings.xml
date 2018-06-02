@@ -3,5 +3,6 @@
   <category name="Rachio Authorization" description="Connection Details">
     <setting type="string" name="Rachio OOAuth Token" variable="RachioToken" description="Find online on the Rachio Web App" />
     <setting type="string" name="Rachio Device ID" variable="RachioDeviceID" description="Find online on the Rachio Web App" />
+    <setting type="integer" name="Status Polling Interval" variable="PollInterval" description="Choose number of minutes between status polls" />
   </category>
 </configuration>

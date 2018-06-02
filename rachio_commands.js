@@ -19,9 +19,14 @@ NET_COMM.OnSSLHandshakeFailedFunc = on_ssl_handshake_ok;
 // Globals - STATIC VARS FOR QUEUED COMMANDS
 var REQUEST_QUEUE = UTIL_QUEUE_new(100);
 
-// Timers
+// Globals - REFRESH TIME
+// Rachio added rate limiting -- 1700 per day
+var REFRESH_INTERVAL = Config.Get("PollInterval") * 60000; 
+
+
+// Initialize Timers and communications object
 var REFRESH_TIMER = new Timer();
-var REFRESH_INTERVAL = 5000; // every second request status from API, flush command queue
+System.Print("Rachio Driver: Polling Interval -- " + REFRESH_INTERVAL + "\r\n");
 REFRESH_TIMER.Start(on_refresh_timer,REFRESH_INTERVAL);
 
 
@@ -187,4 +192,6 @@ function TimedWatering(time,ZoneID) {
 	var tw_endpoint = '/1/public/zone/start';
 	var tw_request = UTIL_RACHIO_PUT_REQUEST_new(tw_endpoint,tw_payload);
 	REQUEST_QUEUE.add(tw_request);
+	REFRESH_TIMER.Stop()
+	on_refresh_timer()
 }
