@@ -4,5 +4,9 @@
     <setting type="string" name="Rachio OOAuth Token" variable="RachioToken" description="Find online on the Rachio Web App" />
     <setting type="string" name="Rachio Device ID" variable="RachioDeviceID" description="Find online on the Rachio Web App" />
     <setting type="integer" name="Status Polling Interval" variable="PollInterval" description="Choose number of minutes between status polls" />
+    <setting type="integer" name="Command Status Timeout" variable="CommandStatusTimeout" description="Number of ms delay after sending command before status poll." default="1000" />
+  </category>
+  <category name="Debug Flags" description="Debugging" hidden="true">
+    <setting type="boolean" name="Global Debug" variable="DebugGlobal" description="Debug everywhere" default="false"/>
   </category>
 </configuration>

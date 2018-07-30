@@ -17,15 +17,17 @@ NET_COMM.OnSSLHandshakeFailedFunc = on_ssl_handshake_failed;
 NET_COMM.OnSSLHandshakeFailedFunc = on_ssl_handshake_ok;
 
 // Globals - STATIC VARS FOR QUEUED COMMANDS
-var REQUEST_QUEUE = UTIL_QUEUE_new(100);
+var REQUEST_QUEUE = UTIL_QUEUE_new(20);
 
 // Globals - REFRESH TIME
 // Rachio added rate limiting -- 1700 per day
 var REFRESH_INTERVAL = Config.Get("PollInterval") * 60000; 
+var SHORT_TIMEOUT_INTERVAL = Config.Get("CommandStatusTimeout")
 
 
 // Initialize Timers and communications object
 var REFRESH_TIMER = new Timer();
+var SHORT_STATUS_TIMEOUT = new Timer();
 System.Print("Rachio Driver: Polling Interval -- " + REFRESH_INTERVAL + "\r\n");
 REFRESH_TIMER.Start(on_refresh_timer,REFRESH_INTERVAL);
 
@@ -38,11 +40,7 @@ REFRESH_TIMER.Start(on_refresh_timer,REFRESH_INTERVAL);
 // send queue and update status
 // this should only be called when already connected
 // and SSL authenticated
-function update_status_and_queue() {
-    // Update Watering Status
-    var st_rq = UTIL_RACHIO_GET_REQUEST_new('/1/public/device/'+Config.Get("RachioDeviceID")+'/current_schedule');
-    st_rq.write(NET_COMM);
-
+function send_queue_and_update_status() {
     // Send any messages in queue
     var next_request = REQUEST_QUEUE.remove();
     while(next_request !== null){
@@ -51,8 +49,18 @@ function update_status_and_queue() {
         next_request = REQUEST_QUEUE.remove();
     }
 
+    // Send status request
+    // Short timeout is to make sure status is set correctly
+    SHORT_STATUS_TIMEOUT.Start(send_status_request,SHORT_TIMEOUT_INTERVAL)
+
     // Restart Refresh Timer
     REFRESH_TIMER.Start(on_refresh_timer,REFRESH_INTERVAL);
+}
+
+function send_status_request() {
+	// Update Watering Status
+	var st_rq = UTIL_RACHIO_GET_REQUEST_new('/1/public/device/'+Config.Get("RachioDeviceID")+'/current_schedule');
+	st_rq.write(NET_COMM);
 }
 
 function on_refresh_timer() {
@@ -67,7 +75,7 @@ function on_refresh_timer() {
 	} else {
 		// If connected, assume SSL session valid
 		// thus update can be performed
-		update_status_and_queue();
+		send_queue_and_update_status();
 	}
 }
 
@@ -81,7 +89,7 @@ function on_ssl_handshake_ok() {
 // callback for update status and queue
 function on_ssl_handshake_ok_refresh_timer() {
 	System.LogInfo(1,"RACHIO DRIVER - SSL Handshake with Rachio API SUCCESS\r\n");
-	update_status_and_queue();
+	send_queue_and_update_status();
 }
 
 
@@ -107,9 +115,11 @@ function on_ssl_handshake_failed_refresh_timer() {
 // TCP Data Received Callbacks
 //
 function OnCommRX(data){
-	System.Print('RACHIO DATA - '+data.length+'\r\n');
-	System.Print('RACHIO DATA - '+data+'\r\n');
-	System.Print('RACHIO DATA - '+data.length+'\r\n');
+	if(Config.Get("DebugGlobal") === true) {
+		System.Print('RACHIO DATA - '+data.length+'\r\n');
+		System.Print('RACHIO DATA - '+data+'\r\n');
+		System.Print('RACHIO DATA - '+data.length+'\r\n');		
+	}
 
 	// check for currently running status in response
 	var running_str = '"status":"PROCESSING"';
@@ -120,7 +130,6 @@ function OnCommRX(data){
 		SystemVars.Write('RACHIO_watering_on',false);
 	}
 }
-
 
 //
 // TCP Connect Callbacks
